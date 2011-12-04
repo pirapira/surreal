@@ -1,11 +1,13 @@
 Inductive step (orig: Set): Set :=
   | inherit: orig -> step orig
-  | compose: list orig -> list orig -> step orig
+  | compose: (orig -> bool) -> (orig -> bool) -> step orig
 .
+
+Inductive empty: Set := .
 
 Fixpoint game (m: nat): Set :=
   match m with
-   | O => unit
+   | O => empty
    | S m' => step (game m')
   end.
 
@@ -15,13 +17,46 @@ Ltac inv H := inversion H; subst; clear H.
 Ltac gen H a :=
     generalize (H a); clear H; intro H.
 
-Require Import List.
+(* are they needed ?
 
-Definition ok_yRx (_x _yR:Set) (x: _x) (yR: list _yR) (le: _yR -> _x -> bool): bool :=
- negb (existsb (fun yr => le yr x) yR).
+Axiom ex_bool: forall {A} (f g: A -> bool),
+  (forall (a: A), f a = g a) -> f = g.
 
-Definition ok_yxL (_xL _y:Set) (xL: list _xL) (y: _y) (le: _y -> _xL -> bool): bool :=
- negb (existsb (fun xl => le y xl) xL).
+Lemma empty_uniq: forall
+  (x y: empty -> bool),
+  x = y.
+  intros.
+  apply ex_bool.
+  intros.
+  inv a.
+Qed.
+
+*)
+  
+
+Inductive gle: forall m n, game m -> game n -> bool -> Prop :=
+| gle_Sli: forall m n g g' b,
+  gle m n g g' b ->
+  gle (S m) n (inherit _ g) g' b
+| gle_Sri: forall m n g g' b,
+  gle m n g g' b ->
+  gle _ (S n) g (inherit _ g') b
+| gle_S: forall m n xL xR yL yR,
+  (forall xl, xL xl = true -> gle (S n) _ (compose (game n) yL yR) xl false) ->
+  (* add the other condition *)
+  gle (S m) (S n) (compose (game m) xL xR) (compose (game n) yL yR) true
+.
+
+
+
+
+
+
+
+
+
+
+
 
 Definition _gle: forall s, forall m n, m + n <= s -> game m -> game n -> bool.
 induction s.
