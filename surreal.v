@@ -1,14 +1,16 @@
-Inductive step (orig: Set): Set :=
-  | compose: (orig -> bool) -> (orig -> bool) -> step orig
+Inductive step (orig: Type): Type :=
+  | compose: (orig -> Prop) -> (orig -> Prop) -> step orig
 .
 
-Inductive empty: Set := .
+Inductive empty: Type := .
 
-Fixpoint game (m: nat): Set :=
+Fixpoint game (m: nat): Type :=
   match m with
    | O => empty
    | S m' => step (game m')
   end.
+
+
 
 Definition sg: forall m, (step (game m)) -> game (S m) := (fun _ x => x).
     
@@ -42,15 +44,15 @@ termination is nasty
 *)
 
 Inductive gle: forall m n, game m -> game n -> bool -> Prop :=
-| gle_St: forall m n (xL: game m -> bool) xR yL (yR: game n -> bool),
-  (forall xl, xL xl = true -> gle (S n) _ (compose (game n) yL yR) xl false) ->
-  (forall yr, yR yr = true -> gle _ (S m) yr (compose (game m) xL xR) false) ->
+| gle_St: forall m n (xL: game m -> Prop) xR yL (yR: game n -> Prop),
+  (forall xl, xL xl -> gle (S n) _ (compose (game n) yL yR) xl false) ->
+  (forall yr, yR yr -> gle _ (S m) yr (compose (game m) xL xR) false) ->
   gle (S m) (S n) (compose (game m) xL xR) (compose (game n) yL yR) true
-| gle_Sfl: forall m n (xL: game m -> bool) xR y,
-  (exists xl, xL xl = true /\ gle n _ y xl true) ->
+| gle_Sfl: forall m n (xL: game m -> Prop) xR y,
+  (exists xl, xL xl /\ gle n _ y xl true) ->
   gle (S m) n (compose (game m) xL xR) y false
-| gle_Sfr: forall m n x yL (yR: game n -> bool),
-  (exists yr, yR yr = true /\ gle _ m yr x true) ->
+| gle_Sfr: forall m n x yL (yR: game n -> Prop),
+  (exists yr, yR yr /\ gle _ m yr x true) ->
   gle m (S n) x (compose (game n) yL yR) false
 .
 
@@ -63,8 +65,8 @@ destruct g.
 intro g.
 destruct g; fold game in *.
 
-rename b into L.
-rename b0 into R.
+rename P into L.
+rename P0 into R.
 apply gle_St.
 
 intros.
@@ -79,16 +81,15 @@ intuition.
 Qed.
 
 
-Definition charm: game 0 -> bool.
+Definition charm: game 0 -> Prop.
 intro.
-simpl in H.
-destruct H.
+destruct X.
 Defined.
 
 
 
 Definition zero: game 1 := compose _ charm charm.
-Definition one : game 2 := compose _ (fun _ => true) (fun _ => false).
+Definition one : game 2 := compose _ (fun _ => True) (fun _ => False).
 Definition half: game 3 := compose _ (fun x => x = zero) (fun y => y = one).
 
 Lemma zero_one: gle _ _ zero one.
