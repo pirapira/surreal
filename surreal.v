@@ -1,125 +1,187 @@
 (* hard ****)
 
-Inductive game: Set :=
-  | _game : list game -> list game -> game
+Inductive step (orig: Set): Set :=
+  | inherit: orig -> step orig
+  | compose: list orig -> list orig -> step orig
 .
 
+
+Fixpoint game (m: nat): Set :=
+  match m with
+   | O => unit
+   | S m' => step (game m')
+  end.
+    
 Ltac inv H := inversion H; subst; clear H.
 Ltac gen H a :=
     generalize (H a); clear H; intro H.
 
 Require Import List.
 
-Inductive gle: game -> game -> bool -> Prop :=
-| gle_t: forall XL XR YL YR,
-    (forall xL, In xL XL -> gle (_game YL YR) xL false) ->
-    (forall yR, In yR YR -> gle yR (_game XL XR) false) ->
-    gle (_game XL XR) (_game YL YR) true
-| gle_fxL: forall XL XR YL YR,
-     (exists xL, In xL XL /\ gle (_game YL YR) xL true) ->
-     gle (_game XL XR) (_game YL YR) false
-| gle_fyR: forall XL XR YL YR,
-     (exists yR, In yR YR /\ gle yR (_game XL XR) true) ->
-     gle (_game XL XR) (_game YL YR) false
-.
-    
+Definition ok_yRx (_x _yR:Set) (x: _x) (yR: list _yR) (le: _yR -> _x -> bool): bool :=
+ negb (existsb (fun yr => le yr x) yR).
 
-Definition zero := _game nil nil.
-Definition one  := _game (zero :: nil) nil.
+Definition ok_yxL (_xL _y:Set) (xL: list _xL) (y: _y) (le: _y -> _xL -> bool): bool :=
+ negb (existsb (fun xl => le y xl) xL).
 
-Lemma nn: gle zero zero true.
-  apply gle_t.
-  intros.
-  inv H.
+Definition _gle: forall s, forall m n, m + n <= s -> game m -> game n -> bool.
+induction s.
+intros.
+exact (true).
 
-  intros.
-  inv H.
-Qed.
+intros m n H x y.
+destruct m; destruct n.
+exact (true).
 
-Lemma refl: forall g, gle g g true.
-  induction g.
-Abort.
+case_eq y.
+fold game.
+intro y_content.
+intro y_eq.
+refine (IHs 0 n _ x y_content).
+Require Omega.
+omega.
 
-Inductive part: game -> game -> Prop :=
-  | part_l: forall l L R,
-      In l L -> part l (_game L R)
-  | part_r: forall r L R,
-      In r R -> part r (_game L R)
-.
+fold game.
+intros L R.
+intro y_eq.
+clear y_eq.
+clear L.
+rename R into yR.
+gen IHs n.
+gen IHs O.
+assert (n + 0 <= s).
+omega.
+gen IHs H0.
+clear H0.
+generalize ok_yRx.
+intro ok.
+gen ok (game O).
+gen ok (game n).
+exact (ok x yR IHs).
 
+case_eq x.
+fold game.
+intro x_content.
+intro x_eq.
+gen IHs m.
+gen IHs O.
+apply IHs.
+omega.
+exact x_content.
+exact y.
+fold game.
+intros xL xR.
+intro x_eq.
+generalize ok_yxL.
+intro ok.
+gen ok (game m).
+gen ok (game O).
+refine (ok xL y _ ).
+gen IHs O.
+gen IHs m.
+apply IHs.
+omega.
 
-
-Theorem gind:
-  forall (P: game -> Prop),
-    (forall L R,
-      (forall l, In l L -> P l) ->
-      (forall r, In r R -> P r) ->
-      P (_game L R)) ->
-    forall g, P g.
-  generalize Fix_F.
-  intro FF.
-  gen FF game.
-  gen FF part.
-  intro P.
-  gen FF P.
-  intro IH.
-
-  assert (forall x : game, (forall y : game, part y x -> P y) -> P x).
-  clear FF.
-  intro x.
-
-  destruct x as [L R].
-
-  gen IH L.
-  gen IH R.
-
-  intro y.
-  apply IH.
-  intros.
-  apply y.
-  apply part_l.
-  assumption.
-
-  intro r.
-  intro inR.
-  apply y.
-  apply part_r.
-  assumption.
-
-  gen FF H.
-  clear H.
-  clear IH.
-  intro g.
-  gen FF g.
-  apply FF.
-  clear FF.
-
-  clear P.
-
-  destruct g.
-  generalize l0.
-  clear l0.
-  induction l.
-  induction l0.
-  apply Acc_intro.
-  intros.
-  inv H.
-  inv H2.
-  inv H2.
-
-  
-  
-  
-  
-(* well, we need an induction principle *)
+case_eq x; fold game; case_eq y; fold game.
+intro y_content.
+intro y_eq.
+clear y y_eq.
+intro x_content.
+intro x_eq.
+clear x_eq x.
+gen IHs m.
+gen IHs n.
+apply IHs.
+omega.
+exact x_content.
+exact y_content.
 
 
+intros yL yR.
+intro y_eq.
+clear yL yR y_eq.
+intro x_content.
+intro x_eq.
+clear x x_eq.
+gen IHs m.
+gen IHs (S n).
+apply IHs.
+omega.
+exact x_content.
+exact y.
+
+intro y_content.
+intro y_eq.
+clear y_eq y.
+intros _ _ _.
+gen IHs (S m).
+gen IHs n.
+apply IHs.
+omega.
+exact x.
+exact y_content.
+
+intros yL yR.
+intro y_eq.
+intros xL xR.
+intro x_eq.
+
+refine (andb _ _); [ generalize ok_yxL | generalize ok_yRx ].
+intro ok.
+clear x_eq y_eq xR x yL yR.
+gen ok (game m).
+gen ok (game (S n)).
+apply ok.
+apply xL.
+apply y.
+apply IHs.
+omega.
+
+clear x_eq xL xR.
+clear y_eq y yL.
+intro ok.
+gen ok (game (S m)).
+gen ok (game n).
+apply ok.
+apply x.
+apply yR.
+apply IHs.
+omega.
+Defined.
+
+Definition gle { m n }: game m -> game n -> bool.
+generalize _gle.
+intro _gle.
+gen _gle (m + n).
+apply _gle.
+omega.
+Defined.  
 
 
-(* gle x x for all games *)
-(* trans for all games, induction on (x, z) *)
+Definition zero : game O := tt.
 
-(* left <== self *)
+Definition one : game (S O) := compose unit (zero :: nil) nil.
+Definition neg_one : game (S O) := compose unit nil (zero :: nil).
 
+Eval compute in (gle one zero). (* false *)
+Eval compute in (gle zero zero). (* true *)
+Eval compute in (gle neg_one zero). (* true *)
+Eval compute in (gle one zero). (* false *)
 
+Lemma inhL: forall m n (Sg: game (S n)) g g',
+  Sg = (inherit (game m) g) ->
+  gle Sg g' = gle g g'.
 
+Lemma refl: forall m (g: game m), gle g g = true.
+induction m.
+
+(* base case *)
+intro g.
+destruct g.
+reflexivity.
+
+(* S *)
+intro g.
+destruct g.
+fold game in *.
+unfold gle.
