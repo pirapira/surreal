@@ -1,9 +1,9 @@
+Inductive empty: Type := .
+
 Inductive step (orig: Type): Type :=
   | compose: (orig -> Prop) -> (orig -> Prop) -> step orig
   | inherit: orig -> step orig
 .
-
-Inductive empty: Type := .
 
 Fixpoint game (m: nat): Type :=
   match m with
@@ -11,39 +11,8 @@ Fixpoint game (m: nat): Type :=
    | S m' => step (game m')
   end.
 
-
-
 Definition sg: forall m, (step (game m)) -> game (S m) := (fun _ x => x).
     
-Ltac inv H := inversion H; subst; clear H.
-Ltac gen H a :=
-    generalize (H a); clear H; intro H.
-
-(* are they needed ?
-
-Axiom ex_bool: forall {A} (f g: A -> bool),
-  (forall (a: A), f a = g a) -> f = g.
-
-Lemma empty_uniq: forall
-  (x y: empty -> bool),
-  x = y.
-  intros.
-  apply ex_bool.
-  intros.
-  inv a.
-Qed.
-
-*)
-
-(*
-Fixpoint gle m n (x: game m) (y: game n): bool :=
-  match (x, y) with
-    | (inherit _ x', y) => gle _ _ x' y
-    | (_, inherit _ h') => gle _ _ x y'
-    | (compose _
-termination is nasty
-*)
-
 Inductive gle: forall m n, game m -> game n -> bool -> Prop :=
 | gle_Il: forall m n x y b,
   gle m n x y b ->
@@ -62,6 +31,10 @@ Inductive gle: forall m n, game m -> game n -> bool -> Prop :=
   (exists yr, yR yr /\ gle _ m yr x true) ->
   gle m (S n) x (compose (game n) yL yR) false
 .
+
+Ltac inv H := inversion H; subst; clear H.
+Ltac gen H a :=
+    generalize (H a); clear H; intro H.
 
 
 Lemma refl: forall m (g: game m), gle _ _ g g true.
