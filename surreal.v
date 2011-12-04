@@ -1,16 +1,15 @@
-(* hard ****)
-
 Inductive step (orig: Set): Set :=
   | inherit: orig -> step orig
   | compose: list orig -> list orig -> step orig
 .
-
 
 Fixpoint game (m: nat): Set :=
   match m with
    | O => unit
    | S m' => step (game m')
   end.
+
+Definition sg: forall m, (step (game m)) -> game (S m) := (fun _ x => x).
     
 Ltac inv H := inversion H; subst; clear H.
 Ltac gen H a :=
@@ -149,14 +148,14 @@ apply IHs.
 omega.
 Defined.
 
-Definition gle { m n }: game m -> game n -> bool.
-generalize _gle.
-intro _gle.
-gen _gle (m + n).
-apply _gle.
-omega.
-Defined.  
+Lemma plpl: forall m n,
+  m + n <= m + n.
+  intros.
+  omega.
+Qed.
 
+Definition gle { m n } (g: game m) (g' :game n): bool :=
+  _gle (m + n) m n (plpl m n) g g'.
 
 Definition zero : game O := tt.
 
@@ -168,9 +167,17 @@ Eval compute in (gle zero zero). (* true *)
 Eval compute in (gle neg_one zero). (* true *)
 Eval compute in (gle one zero). (* false *)
 
-Lemma inhL: forall m n (Sg: game (S n)) g g',
-  Sg = (inherit (game m) g) ->
-  gle Sg g' = gle g g'.
+Print _gle.
+
+Lemma inhL: forall m n (Sg: game (S n)) (g: game n) (g': game m),
+  gle (sg n (inherit (game n) g)) g' = gle g g'.
+intros.
+unfold sg.
+unfold gle.
+destruct m.
+destruct g'.
+
+
 
 Lemma refl: forall m (g: game m), gle g g = true.
 induction m.
@@ -184,4 +191,3 @@ reflexivity.
 intro g.
 destruct g.
 fold game in *.
-unfold gle.
