@@ -1,11 +1,10 @@
-Inductive step (orig: Type): Type :=
-  | inherit: orig -> step orig
-  | compose: (orig -> Prop) -> (orig -> Prop) -> step orig
+Inductive step (orig: Set): Set :=
+  | compose: (orig -> bool) -> (orig -> bool) -> step orig
 .
 
-Inductive empty: Type := .
+Inductive empty: Set := .
 
-Fixpoint game (m: nat): Type :=
+Fixpoint game (m: nat): Set :=
   match m with
    | O => empty
    | S m' => step (game m')
@@ -33,24 +32,26 @@ Qed.
 
 *)
 
+(*
+Fixpoint gle m n (x: game m) (y: game n): bool :=
+  match (x, y) with
+    | (inherit _ x', y) => gle _ _ x' y
+    | (_, inherit _ h') => gle _ _ x y'
+    | (compose _
+termination is nasty
+*)
 
 Inductive gle: forall m n, game m -> game n -> bool -> Prop :=
-| gle_Sli: forall m n g g' b,
-  gle m n g g' b ->
-  gle (S m) n (inherit _ g) g' b
-| gle_Sri: forall m n g g' b,
-  gle m n g g' b ->
-  gle _ (S n) g (inherit _ g') b
-| gle_St: forall m n (xL: game m -> Prop) xR yL (yR: game n -> Prop),
-  (forall xl, xL xl -> gle (S n) _ (compose (game n) yL yR) xl false) ->
-  (forall yr, yR yr -> gle _ (S m) yr (compose (game m) xL xR) false) ->
+| gle_St: forall m n (xL: game m -> bool) xR yL (yR: game n -> bool),
+  (forall xl, xL xl = true -> gle (S n) _ (compose (game n) yL yR) xl false) ->
+  (forall yr, yR yr = true -> gle _ (S m) yr (compose (game m) xL xR) false) ->
   gle (S m) (S n) (compose (game m) xL xR) (compose (game n) yL yR) true
-| gle_Sfl: forall m n (xL: game m -> Prop) xR yL (yR: game n -> Prop),
-  (exists xl, xL xl /\ gle (S n) _ (compose (game n) yL yR) xl true) ->
-  gle (S m) (S n) (compose (game m) xL xR) (compose (game n) yL yR) false
-| gle_Sfr: forall m n (xL: game m -> Prop) xR yL (yR: game n -> Prop),
-  (exists yr, yR yr /\ gle _ (S m) yr (compose (game m) xL xR) false) ->
-  gle (S m) (S n) (compose (game m) xL xR) (compose (game n) yL yR) false
+| gle_Sfl: forall m n (xL: game m -> bool) xR y,
+  (exists xl, xL xl = true /\ gle n _ y xl true) ->
+  gle (S m) n (compose (game m) xL xR) y false
+| gle_Sfr: forall m n x yL (yR: game n -> bool),
+  (exists yr, yR yr = true /\ gle _ m yr x true) ->
+  gle m (S n) x (compose (game n) yL yR) false
 .
 
 
@@ -61,29 +62,34 @@ destruct g.
 
 intro g.
 destruct g; fold game in *.
-apply gle_Sli.
-apply gle_Sri.
-apply IHm.
 
-rename P into L.
-rename P0 into R.
+rename b into L.
+rename b0 into R.
 apply gle_St.
-intro xl.
-intro xlL.
-destruct m.
-inv xl.
-destruct xl.
-fold game in *.
+
+intros.
+apply gle_Sfl.
+exists xl.
+intuition.
+
+intros.
+apply gle_Sfr.
+exists yr.
+intuition.
+Qed.
 
 
-Definition charm: game 0 -> Prop.
+Definition charm: game 0 -> bool.
 intro.
-inv X.
+simpl in H.
+destruct H.
 Defined.
 
+
+
 Definition zero: game 1 := compose _ charm charm.
-Definition one : game 2 := compose _ (fun _ => True) (fun _ => False).
-Definition half: game 3 := compose _ (fun x => x = inherit _ zero) (fun y => y = one).
+Definition one : game 2 := compose _ (fun _ => true) (fun _ => false).
+Definition half: game 3 := compose _ (fun x => x = zero) (fun y => y = one).
 
 Lemma zero_one: gle _ _ zero one.
   compute.
