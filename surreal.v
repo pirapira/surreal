@@ -1,3 +1,5 @@
+(* hard ****)
+
 Inductive game: Set :=
   | _game : list game -> list game -> game
 .
@@ -45,17 +47,7 @@ Inductive part: game -> game -> Prop :=
       In r R -> part r (_game L R)
 .
 
-Inductive size: game -> nat -> Prop :=
-| size_nil: size (_game nil nil) O
-| size_lcons: forall L R l sg sl,
-  size (_game L R) sg ->
-  size l sl ->
-  size (_game (l :: L) R) (sg + sl + 1)
-| size_rcons: forall L R r sg sr,
-  size (_game L R) sg ->
-  size r sr ->
-  size (_game L (r :: R)) (sg + sr + 1)
-.
+
 
 Theorem gind:
   forall (P: game -> Prop),
@@ -102,13 +94,21 @@ Theorem gind:
   apply FF.
   clear FF.
 
-  Require Import Wf_nat.
-  apply acc_lt_rel with size.
+  clear P.
+
+  destruct g.
+  generalize l0.
+  clear l0.
+  induction l.
+  induction l0.
+  apply Acc_intro.
   intros.
   inv H.
-  unfold inv_lt_rel.
+  inv H2.
+  inv H2.
 
-
+  
+  
   
   
 (* well, we need an induction principle *)
